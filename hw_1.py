@@ -76,70 +76,85 @@ def gameround(mask, infomap, fd):
   if(infomap[x][y] == -1): return  1
   elif(infomap[x][y] != 0): return  0
   elif(infomap[x][y] == 0):
-    selectnull(x, y)
+    selectnull(x, y, pmap)
     return  0
 
 def aipick(mask, infomap, x, y, pmap, fd):
   printGameview(mask, infomap, fd)
   print "pick "+str(x)+'  '+str(y)
   mask[x][y]=0
-  if(infomap[x][y] == -1): 
+  if(infomap[x][y] == -1): #bomb
     mask[x][y] = 1
-    pmap[x][y] = 1
+    pmap[x][y][0] = 1 
     print "bomb pos"+str(x)+','+str(y)
     return  -1
-  elif(infomap[x][y] != 0): 
-    pmap[x][y] = -1
+  elif(infomap[x][y] != 0): #edge
+    pmap[x][y][0] = float(3)
     return  0
-  elif(infomap[x][y] == 0):
-    pmap[x][y] = -1
-    selectnull(x, y)
+  elif(infomap[x][y] == 0): #nullpos
+    pmap[x][y][0] = 2
+    selectnull(x, y, pmap)
     return  0
 
-def aicountP(mask, infomap, pmap):
+def aicountP(mask, infomap, pmap, bombcount):
   global victor
-  min = 2
+  realbomb = bombcount
+  closeblock = 0 
+  min = 100
+  exp = [[float(0)] * 9 for i in range(0,9)]
+  # print '------------------------------------------------------------------'
   for x in range(0,9):
     for y in range(0,9):
-      if(mask[x][y]==0):
+      pmap[x][y][1]=0
+      pmap[x][y][2]=0
+  for x in range(0,9):
+    for y in range(0,9):
+      if(pmap[x][y][0]==1 ): realbomb -= 1
+      if(pmap[x][y][0]==0 ): closeblock += 1
+      if(pmap[x][y][0]==3):
         edge = 0
         bomb = infomap[x][y]
         for conpoment in victor:
           dx = conpoment[0]
           dy = conpoment[1]
           if(0<=x+dx and x+dx<=8 and 0<=y+dy and y+dy<=8):
-            if(mask[x+dx][y+dy]==1): edge+=1 
-            if(pmap[x+dx][y+dy]==1): bomb-=1 
-            if(mask[x+dx][y+dy]==0): pmap[x+dx][y+dy]=-1
+            if(pmap[x+dx][y+dy][0]==0): edge+=1 
+            if(pmap[x+dx][y+dy][0]==1): bomb-=1 
         if(edge==0): continue
         p =  float(bomb)/float(edge)
         for conpoment in victor:
           dx = conpoment[0]
           dy = conpoment[1]
           if(0<=x+dx and x+dx<=8 and 0<=y+dy and y+dy<=8):
-            if( mask[x+dx][y+dy]==1 and pmap[x+dx][y+dy]<p ):  pmap[x+dx][y+dy]=p 
-  
+            if(pmap[x+dx][y+dy][0]==0):  
+              pmap[x+dx][y+dy][1]+=p
+              pmap[x+dx][y+dy][2]+=1
+
+  for x in range(0,9):
+    for y in range(0,9):
+      if(pmap[x][y][0]== 0.0 and pmap[x][y][1]!=0 and pmap[x][y][2]!=0 ): 
+        exp[x][y] = float(pmap[x][y][1])/pmap[x][y][2]
+      elif(pmap[x][y][0]== 0.0 and pmap[x][y][1]==0.0 and closeblock+realbomb!=0 ):
+        exp[x][y] = realbomb/(closeblock+realbomb)
+      else: exp[x][y] = -1
   # --------------------------------------------------------------------------------------
   anslist = []
   i = 0
   for x in range(0,9):
     for y in range(0,9):
-      if( min>pmap[x][y] and pmap[x][y]!=-1 ): min = pmap[x][y]
+      if( min>exp[x][y] and exp[x][y]!=-1 ): min = exp[x][y]
   for x in range(0,9):
     for y in range(0,9):
-      if( min == pmap[x][y] and pmap[x][y]!=-1 ): 
+      if( min == exp[x][y] and exp[x][y]!=-1 ): 
         anslist.append([x,y])
         i+=1
+  # print anslist
   i = random.randint(0, i-1)
   print "p = "+ str(min) + ', i = '+ str(i)
   print 'predict '+ str(anslist[i])
-  # for k in pmap:
-  #   for j in k:
-  #     print str("%.3f"%j)+ "\t",
-  #   print '\n'
   return anslist[i][0], anslist[i][1]
 
-def selectnull(x, y):
+def selectnull(x, y, pmap):
   global victor
   for conpoment in victor:
     dirx = conpoment[1]
@@ -147,9 +162,11 @@ def selectnull(x, y):
     if(0<=x+dirx and x+dirx<=8 and 0<=y+diry and y+diry<=8):
       if(infomap[x+dirx][y+diry]==0 and mask[x+dirx][y+diry]!=0):
         mask[x+dirx][y+diry]=0
-        selectnull(x+dirx, y+diry)
+        pmap[x+dirx][y+diry][0] = 2
+        selectnull(x+dirx, y+diry, pmap)
       else: 
         mask[x+dirx][y+diry]=0
+        pmap[x+dirx][y+diry][0] = 3
 
 def openbombpos(mask, infomap):
   count=0
@@ -162,7 +179,7 @@ def openbombpos(mask, infomap):
 
 if __name__=="__main__":
   gamemap = [[0] for i in range(0,9)]
-  fd = open("data01.txt",'r')
+  fd = open("data02.txt",'r')
   i=0
   bombcount = 0
   for line in fd:
@@ -186,15 +203,16 @@ if __name__=="__main__":
   fdplay = open('play.txt','w+')
   fdresult = open('result.txt','w+')
   mask = [[1]*9 for i in range(0,9)]
-  pmap = [[float(0)]*9 for i in range(0,9)]
+  pmap = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]
   maskcount = 9*9
   live = 3
   x = random.randint(0, 8)
   y = random.randint(0, 8)
   live += aipick(mask, infomap, x, y, pmap, fdplay)
   while(live>0):
+    # inoo =raw_input('next')
     time.sleep(0.5)
-    x, y = aicountP(mask, infomap, pmap)
+    x, y = aicountP(mask, infomap, pmap, bombcount)
     opencount = 0
     live += aipick(mask, infomap, x, y, pmap, fdplay)
     for x in range(0,9):
