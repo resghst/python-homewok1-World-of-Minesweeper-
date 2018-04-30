@@ -76,7 +76,8 @@ def gameround(mask, infomap, fd):
   if(infomap[x][y] == -1): return  1
   elif(infomap[x][y] != 0): return  0
   elif(infomap[x][y] == 0):
-    selectnull(x, y, pmap)
+    ll = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]    
+    selectnull(x, y, infomap, mask, ll)
     return  0
 
 def aipick(mask, infomap, x, y, pmap, fd):
@@ -93,7 +94,7 @@ def aipick(mask, infomap, x, y, pmap, fd):
     return  0
   elif(infomap[x][y] == 0): #nullpos
     pmap[x][y][0] = 2
-    selectnull(x, y, pmap)
+    selectnull(x, y, infomap, mask, pmap)
     return  0
 
 def aicountP(mask, infomap, pmap, bombcount):
@@ -154,7 +155,7 @@ def aicountP(mask, infomap, pmap, bombcount):
   print 'predict '+ str(anslist[i])
   return anslist[i][0], anslist[i][1]
 
-def selectnull(x, y, pmap):
+def selectnull(x, y, infomap, mask,pmap):
   global victor
   for conpoment in victor:
     dirx = conpoment[1]
@@ -163,7 +164,7 @@ def selectnull(x, y, pmap):
       if(infomap[x+dirx][y+diry]==0 and mask[x+dirx][y+diry]!=0):
         mask[x+dirx][y+diry]=0
         pmap[x+dirx][y+diry][0] = 2
-        selectnull(x+dirx, y+diry, pmap)
+        selectnull(x+dirx, y+diry, infomap, mask, pmap)
       else: 
         mask[x+dirx][y+diry]=0
         pmap[x+dirx][y+diry][0] = 3
@@ -176,8 +177,144 @@ def openbombpos(mask, infomap):
         mask[x][y]=0
         count+=1
   return count
+	
+def function1():
+  for j in range(1,6):
+    filecount =str(j)
+    gamemap = [[0] for i in range(0,9)]
+    fd = open("data0"+ filecount +".txt",'r')
+    i=0
+    bombcount = 0
+    for line in fd:
+      inputrow = line.strip('\n').split(',')
+      inputrow = [int(j) for j in inputrow]
+      gamemap[i] = inputrow
+      i+=1
+    fd.close()
+    infomap = deepcopy(gamemap)
+    for x in range(0,9):
+      for y in range(0,9):
+        if(infomap[x][y] == -1): 
+          bombcount+=1
+          countbomb([x,y],infomap)
+    print "\ndata0" + filecount + ".txt output:"
+    fd = open('standard'+ filecount +'.txt','w')
+    for i in infomap: 
+      print str(i).strip('[]')
+      fd.write(str(i).strip('[]')+"\n")
+    fd.close()
+
+def function2():
+  for excutetime in range(1,6):
+    gamemap = [[0] for i in range(0,9)]
+    fd = open("data0" + str(excutetime) + ".txt",'r')
+    i=0
+    bombcount = 0
+    for line in fd:
+      inputrow = line.strip('\n').split(',')
+      inputrow = [int(j) for j in inputrow]
+      gamemap[i] = inputrow
+      i+=1
+    fd.close()
+    infomap = deepcopy(gamemap)
+    for x in range(0,9):
+      for y in range(0,9):
+        if(infomap[x][y] == -1): 
+          bombcount+=1
+          countbomb([x,y],infomap)
+    
+    fd = open('standard' + str(excutetime) + '.txt','w')
+    for i in infomap: 
+      fd.write(str(i).strip('[]')+"\n")
+    fd.close()
+
+    fdplay = open('play' + str(excutetime) + '.txt','w+')
+    fdresult = open('result' + str(excutetime) + '.txt','w+')
+
+    mask = [[1]*9 for i in range(0,9)]
+    maskcount = 9*9
+    end = 0
+    print maskcount-bombcount 
+    while(end==0):
+      opencount = 0
+      end = gameround(mask, infomap, fdplay)
+      for x in range(0,9):
+        for y in range(0,9):
+          if(mask[x][y] == 0): opencount+=1
+      print opencount
+      if( maskcount-bombcount == opencount ): 
+        print 'game win'
+        break
+
+    opencount+=openbombpos(mask, infomap)
+    printGameview(mask, infomap, fdresult)
+    print end
+    score = opencount/maskcount *30
+    fdplay.close()
+    fdresult.close()
+
+def function3():
+  for excutetime in range(1,6):
+    gamemap = [[0] for i in range(0,9)]
+    fd = open("data0" + str(excutetime) + ".txt",'r')
+    i=0
+    bombcount = 0
+    for line in fd:
+      inputrow = line.strip('\n').split(',')
+      inputrow = [int(j) for j in inputrow]
+      gamemap[i] = inputrow
+      i+=1
+    fd.close()
+    infomap = deepcopy(gamemap)
+    for x in range(0,9):
+      for y in range(0,9):
+        if(infomap[x][y] == -1): 
+          bombcount+=1
+          countbomb([x,y],infomap)
+
+    fd = open('standard' + str(excutetime) + '.txt','w')
+    for i in infomap: 
+      fd.write(str(i).strip('[]')+"\n")
+    fd.close()
+
+    fdplay = open('play' + str(excutetime) + '.txt','w+')
+    fdresult = open('result' + str(excutetime) + '.txt','w+')
+    mask = [[1]*9 for i in range(0,9)]
+    pmap = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]
+    maskcount = 9*9
+    live = 3
+    x = random.randint(0, 8)
+    y = random.randint(0, 8)
+    live += aipick(mask, infomap, x, y, pmap, fdplay)
+    while(live>0):
+      # inoo =raw_input('next')
+      time.sleep(0.5)
+      x, y = aicountP(mask, infomap, pmap, bombcount)
+      opencount = 0
+      live += aipick(mask, infomap, x, y, pmap, fdplay)
+      for x in range(0,9):
+        for y in range(0,9):
+          if(mask[x][y] == 0): opencount+=1
+      print opencount
+      if( maskcount-bombcount == opencount ): 
+        # print 'game win'
+        break
+    
+    printGameview(mask, infomap, fdresult)
+    if( maskcount-bombcount == opencount ):
+        print 'game win'
+    else:
+        print 'game lose'
 
 if __name__=="__main__":
+  while True:
+    funstr = input('請輸入檢視功能(1.功能一 2.功能二 3.功能三 4.結束程式)\n')
+    if(int(funstr) == 1): function1()
+    elif(int(funstr) == 2):  function2()
+    elif(int(funstr) == 3):  function3()
+    elif(int(funstr) == 4):  break
+
+
   gamemap = [[0] for i in range(0,9)]
   fd = open("data02.txt",'r')
   i=0
@@ -194,65 +331,71 @@ if __name__=="__main__":
       if(infomap[x][y] == -1): 
         bombcount+=1
         countbomb([x,y],infomap)
-
+  
   fd = open('standard.txt','w')
-  for i in infomap: fd.write(str(i).strip('[]')+"\n")
+  for i in infomap: 
+    fd.write(str(i).strip('[]')+"\n")
   fd.close()
   # =================================================================
 
-  fdplay = open('play.txt','w+')
-  fdresult = open('result.txt','w+')
-  mask = [[1]*9 for i in range(0,9)]
-  pmap = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]
-  maskcount = 9*9
-  live = 3
-  x = random.randint(0, 8)
-  y = random.randint(0, 8)
-  live += aipick(mask, infomap, x, y, pmap, fdplay)
-  while(live>0):
-    # inoo =raw_input('next')
-    time.sleep(0.5)
-    x, y = aicountP(mask, infomap, pmap, bombcount)
-    opencount = 0
-    live += aipick(mask, infomap, x, y, pmap, fdplay)
-    for x in range(0,9):
-      for y in range(0,9):
-        if(mask[x][y] == 0): opencount+=1
-    print opencount
-    if( maskcount-bombcount == opencount ): 
-      # print 'game win'
-      break
-  
-  printGameview(mask, infomap, fdresult)
-  if( maskcount-bombcount == opencount ):
-      print 'game win'
-  else:
-      print 'game lose'
-  
-
-# =================================================================
-
   # fdplay = open('play.txt','w+')
   # fdresult = open('result.txt','w+')
-
   # mask = [[1]*9 for i in range(0,9)]
+  # pmap = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]
   # maskcount = 9*9
-  # end = 0
-  # print maskcount-bombcount 
-  # while(end==0):
+  # live = 3
+  # x = random.randint(0, 8)
+  # y = random.randint(0, 8)
+  # live += aipick(mask, infomap, x, y, pmap, fdplay)
+  # while(live>0):
+  #   # inoo =raw_input('next')
+  #   time.sleep(0.5)
+  #   x, y = aicountP(mask, infomap, pmap, bombcount)
   #   opencount = 0
-  #   end = gameround(mask, infomap, fdplay)
+  #   live += aipick(mask, infomap, x, y, pmap, fdplay)
   #   for x in range(0,9):
   #     for y in range(0,9):
   #       if(mask[x][y] == 0): opencount+=1
   #   print opencount
   #   if( maskcount-bombcount == opencount ): 
-  #     print 'game win'
+  #     # print 'game win'
   #     break
-
-  # opencount+=openbombpos(mask, infomap)
+  
   # printGameview(mask, infomap, fdresult)
-  # print end
-  # score = opencount/maskcount *30
-  # fdplay.close()
-  # fdresult.close()
+  # if( maskcount-bombcount == opencount ):
+  #     print 'game win'
+  # else:
+  #     print 'game lose'
+  
+
+# =================================================================
+
+    # fd = open('standard' + excutetime + '.txt','w')
+    # for i in infomap: 
+    #   fd.write(str(i).strip('[]')+"\n")
+    # fd.close()
+
+    # fdplay = open('play' + excutetime + '.txt','w+')
+    # fdresult = open('result' + excutetime + '.txt','w+')
+
+    # mask = [[1]*9 for i in range(0,9)]
+    # maskcount = 9*9
+    # end = 0
+    # print maskcount-bombcount 
+    # while(end==0):
+    #   opencount = 0
+    #   end = gameround(mask, infomap, fdplay)
+    #   for x in range(0,9):
+    #     for y in range(0,9):
+    #       if(mask[x][y] == 0): opencount+=1
+    #   print opencount
+    #   if( maskcount-bombcount == opencount ): 
+    #     print 'game win'
+    #     break
+
+    # opencount+=openbombpos(mask, infomap)
+    # printGameview(mask, infomap, fdresult)
+    # print end
+    # score = opencount/maskcount *30
+    # fdplay.close()
+    # fdresult.close()
