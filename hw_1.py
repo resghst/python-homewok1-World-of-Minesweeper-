@@ -248,12 +248,13 @@ def function2():
 
     opencount+=openbombpos(mask, infomap)
     printGameview(mask, infomap, fdresult)
-    print end
     score = opencount/maskcount *30
+    print "this round score is " + str(score)
     fdplay.close()
     fdresult.close()
 
 def function3():
+  avgscore = 0
   for excutetime in range(1,6):
     gamemap = [[0] for i in range(0,9)]
     fd = open("data0" + str(excutetime) + ".txt",'r')
@@ -277,7 +278,7 @@ def function3():
       fd.write(str(i).strip('[]')+"\n")
     fd.close()
 
-    fdplay = open('play' + str(excutetime) + '.txt','w+')
+    fdplay = open('ai' + str(excutetime) + '.txt','w+')
     fdresult = open('result' + str(excutetime) + '.txt','w+')
     mask = [[1]*9 for i in range(0,9)]
     pmap = [[[float(0) for k in range(3)] for j in range(9)] for i in range(9)]
@@ -306,36 +307,51 @@ def function3():
     else:
         print 'game lose'
 
+    opencount+=openbombpos(mask, infomap)
+    printGameview(mask, infomap, fdresult)
+    score = opencount/maskcount *30
+    avgscore +=score
+    print "this round score is " + str(score)
+    fdplay.close()
+    fdresult.close()
+  avgscore /= 5
+  print "\nfive round avage score is "+ str(avgscore) +"\n"
+  return avgscore
+
 if __name__=="__main__":
   while True:
     funstr = input('請輸入檢視功能(1.功能一 2.功能二 3.功能三 4.結束程式)\n')
     if(int(funstr) == 1): function1()
-    elif(int(funstr) == 2):  function2()
-    elif(int(funstr) == 3):  function3()
+    elif(int(funstr) == 2): function2()
+    elif(int(funstr) == 3): function3()
+      # allk = 0 
+      # for i in range(1000):
+      #   allk+=function3()
+      # print "run 1000 time score is " + str(allk/1000)
     elif(int(funstr) == 4):  break
 
 
-  gamemap = [[0] for i in range(0,9)]
-  fd = open("data02.txt",'r')
-  i=0
-  bombcount = 0
-  for line in fd:
-    inputrow = line.strip('\n').split(',')
-    inputrow = [int(j) for j in inputrow]
-    gamemap[i] = inputrow
-    i+=1
-  fd.close()
-  infomap = deepcopy(gamemap)
-  for x in range(0,9):
-    for y in range(0,9):
-      if(infomap[x][y] == -1): 
-        bombcount+=1
-        countbomb([x,y],infomap)
+  # gamemap = [[0] for i in range(0,9)]
+  # fd = open("data02.txt",'r')
+  # i=0
+  # bombcount = 0
+  # for line in fd:
+  #   inputrow = line.strip('\n').split(',')
+  #   inputrow = [int(j) for j in inputrow]
+  #   gamemap[i] = inputrow
+  #   i+=1
+  # fd.close()
+  # infomap = deepcopy(gamemap)
+  # for x in range(0,9):
+  #   for y in range(0,9):
+  #     if(infomap[x][y] == -1): 
+  #       bombcount+=1
+  #       countbomb([x,y],infomap)
   
-  fd = open('standard.txt','w')
-  for i in infomap: 
-    fd.write(str(i).strip('[]')+"\n")
-  fd.close()
+  # fd = open('standard.txt','w')
+  # for i in infomap: 
+  #   fd.write(str(i).strip('[]')+"\n")
+  # fd.close()
   # =================================================================
 
   # fdplay = open('play.txt','w+')
